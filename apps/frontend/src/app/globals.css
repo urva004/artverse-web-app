@@ -1,0 +1,264 @@
+/* ═══════════════════════════════════════════════════
+   ArtVerse — Global Styles + CSS Variables (Design Tokens)
+   ═══════════════════════════════════════════════════ */
+
+/* ── Google Fonts Import ── */
+@import url("https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=JetBrains+Mono:wght@400;500;600&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+/* ── Dark Theme (default) ── */
+:root {
+  --color-bg: #0a0a0f;
+  --color-bg-2: #111118;
+  --color-card: #1c1c26;
+  --color-border: rgba(255, 255, 255, 0.07);
+  --color-text: #f0eff8;
+  --color-muted: #8887a4;
+  --color-accent: #c77dff;
+  --color-accent-2: #7b5ea7;
+  --color-teal: #00d4c8;
+  --color-gold: #f4c430;
+  --color-rose: #ff6b8a;
+  --color-success: #22c55e;
+}
+
+/* ── Light Theme ── */
+[data-theme="light"],
+.light {
+  --color-bg: #f8f7ff;
+  --color-bg-2: #ffffff;
+  --color-card: #ffffff;
+  --color-border: rgba(0, 0, 0, 0.08);
+  --color-text: #1a1a2e;
+  --color-muted: #6b6b8a;
+  --color-accent: #9b4dca;
+  --color-accent-2: #6d3a8a;
+  --color-teal: #00a89e;
+  --color-gold: #d4a420;
+  --color-rose: #e84570;
+  --color-success: #16a34a;
+}
+
+/* ── Base Styles ── */
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: "DM Sans", sans-serif;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    min-height: 100vh;
+    transition:
+      background-color 0.3s ease,
+      color 0.3s ease;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "Syne", sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--color-bg-2);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-accent-2);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-accent);
+  }
+
+  .chat-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(123, 94, 167, 0.85) transparent;
+    scrollbar-gutter: stable;
+  }
+
+  .chat-scrollbar::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  .chat-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+    margin-block: 10px;
+  }
+
+  .chat-scrollbar::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: padding-box;
+    background-color: rgba(123, 94, 167, 0.78);
+  }
+
+  .chat-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(199, 125, 255, 0.95);
+  }
+}
+
+/* ── Component Utilities ── */
+@layer components {
+  .glass-card {
+    background: rgba(28, 28, 38, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+  }
+
+  .gradient-text {
+    background: linear-gradient(
+      135deg,
+      var(--color-accent) 0%,
+      var(--color-teal) 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .gradient-border {
+    position: relative;
+    border: 1px solid transparent;
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    background-image:
+      linear-gradient(var(--color-card), var(--color-card)),
+      linear-gradient(135deg, var(--color-accent), var(--color-teal));
+  }
+
+  .hover-lift {
+    transition:
+      transform 0.3s ease,
+      box-shadow 0.3s ease;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(199, 125, 255, 0.15);
+  }
+
+  .skeleton-shimmer {
+    background: linear-gradient(
+      90deg,
+      var(--color-card) 25%,
+      rgba(255, 255, 255, 0.05) 50%,
+      var(--color-card) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite linear;
+  }
+
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1030;
+    background: var(--color-bg-2);
+    border-top: 1px solid var(--color-border);
+    backdrop-filter: blur(12px);
+  }
+}
+
+/* ── Animations ── */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes heartbeat {
+  0% {
+    transform: scale(1);
+  }
+  15% {
+    transform: scale(1.25);
+  }
+  30% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.15);
+  }
+  60% {
+    transform: scale(1);
+  }
+}
+
+@keyframes star-fill {
+  0% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.4) drop-shadow(0 0 6px var(--color-gold));
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
+/* ── Review Section Utilities ── */
+@layer components {
+  .review-skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--color-card) 25%,
+      rgba(255, 255, 255, 0.05) 50%,
+      var(--color-card) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite linear;
+    border-radius: 8px;
+  }
+}
+

@@ -1,0 +1,412 @@
+// ═══════════════════════════════════════════════════
+// ArtVerse — Prisma Schema
+// ═══════════════════════════════════════════════════
+// Primary DB: PostgreSQL (Neon / Supabase)
+// ORM: Prisma with type-safe queries & migrations
+// ═══════════════════════════════════════════════════
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────────
+
+enum UserRole {
+  BUYER
+  SELLER
+  ADMIN
+}
+
+enum ArtCategory {
+  LIP_ART
+  SKETCHES
+  MEHNDI_DESIGNS
+  PAINTINGS
+  DIGITAL_ART
+  ART_MATERIALS
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum GroupType {
+  PUBLIC
+  PRIVATE
+}
+
+enum GroupMemberRole {
+  MEMBER
+  ADMIN
+}
+
+enum MessageStatus {
+  SENT
+  SEEN
+  DELETED
+}
+
+enum NotificationType {
+  ORDER_PLACED
+  ORDER_SHIPPED
+  ORDER_DELIVERED
+  ORDER_CANCELLED
+  NEW_FOLLOWER
+  ARTWORK_LIKED
+  ARTWORK_COMMENTED
+  ARTWORK_UPLOADED
+  PERSONAL_MESSAGE
+  COMMUNITY_MESSAGE
+  NEW_REVIEW
+  PRODUCT_APPROVED
+  PRODUCT_REJECTED
+  GROUP_INVITE
+  GROUP_MESSAGE
+  PRICE_DROP
+  SYSTEM
+}
+
+// ─────────────────────────────────────────────────
+// MODELS
+// ─────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(BUYER)
+  roleAssignment UserRoleAssignment?
+  avatar       String?
+  bio          String?
+  socialLinks  Json?    // { instagram?: string, twitter?: string, website?: string, behance?: string }
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // ── Relations ──
+  products      ArtProduct[]
+  orders        Order[]        @relation("BuyerOrders")
+  reviews       Review[]
+  wishlists     Wishlist[]
+  notifications Notification[]
+  cart          Cart?
+
+  // Social: Follow system
+  followers  Follow[] @relation("Following") // users who follow this user
+  following  Follow[] @relation("Followers") // users this user follows
+
+  // Community
+  createdGroups Group[]       @relation("GroupCreator")
+  groupMembers  GroupMember[]
+  messages      Message[]
+  directMessagesSent     DirectMessage[] @relation("DirectMessageSender")
+  directMessagesReceived DirectMessage[] @relation("DirectMessageRecipient")
+
+  // Refresh tokens
+  refreshTokens RefreshToken[]
+
+  @@index([email])
+  @@index([role])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model UserRoleAssignment {
+  id        String   @id @default(cuid())
+  role      UserRole @default(BUYER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([role])
+  @@map("user_roles")
+}
+
+model ArtProduct {
+  id          String      @id @default(cuid())
+  title       String
+  description String
+  price       Float
+  images      String[]    // array of Cloudinary URLs
+  category    ArtCategory
+  tags        String[]
+  stock       Int         @default(1)
+  isApproved  Boolean     @default(false)
+  views       Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // ── Relations ──
+  sellerId String
+  seller   User   @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  orderItems OrderItem[]
+  reviews    Review[]
+  wishlists  Wishlist[]
+  cartItems  CartItem[]
+
+  @@index([sellerId])
+  @@index([category])
+  @@index([isApproved])
+  @@index([createdAt])
+  @@index([price])
+  @@index([sellerId, category, isApproved])
+  @@map("art_products")
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  totalAmount     Float
+  status          OrderStatus @default(PENDING)
+  razorpayOrderId String?     @unique
+  razorpayPaymentId String?
+  invoiceUrl      String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // ── Relations ──
+  buyerId String
+  buyer   User   @relation("BuyerOrders", fields: [buyerId], references: [id], onDelete: Cascade)
+
+  items OrderItem[]
+
+  @@index([buyerId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([razorpayOrderId])
+  @@map("orders")
+}
+
+model OrderItem {
+  id       String @id @default(cuid())
+  quantity Int
+  price    Float  // price at the time of purchase (snapshot)
+
+  // ── Relations ──
+  orderId   String
+  order     Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   ArtProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int      // 1-5
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ── Relations ──
+  productId String
+  product   ArtProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, userId]) // one review per user per product
+  @@index([productId])
+  @@index([userId])
+  @@index([rating])
+  @@map("reviews")
+}
+
+model Wishlist {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // ── Relations ──
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   ArtProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId]) // prevent duplicates
+  @@index([userId])
+  @@index([productId])
+  @@map("wishlists")
+}
+
+model Follow {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // ── Relations ──
+  followerId  String
+  follower    User   @relation("Followers", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId String
+  following   User   @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId]) // prevent duplicate follows
+  @@index([followerId])
+  @@index([followingId])
+  @@map("follows")
+}
+
+model Group {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  type        GroupType @default(PUBLIC)
+  coverImage  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // ── Relations ──
+  creatorId String
+  creator   User   @relation("GroupCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+
+  members  GroupMember[]
+  messages Message[]
+
+  @@index([creatorId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("groups")
+}
+
+model GroupMember {
+  id       String          @id @default(cuid())
+  role     GroupMemberRole  @default(MEMBER)
+  joinedAt DateTime         @default(now())
+
+  // ── Relations ──
+  groupId String
+  group   Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId]) // prevent duplicate memberships
+  @@index([groupId])
+  @@index([userId])
+  @@map("group_members")
+}
+
+model Message {
+  id        String        @id @default(cuid())
+  content   String
+  imageUrl  String?
+  metadata  Json?
+  status    MessageStatus @default(SENT)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  // ── Relations ──
+  groupId  String
+  group    Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  senderId String
+  sender   User   @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
+  @@index([senderId])
+  @@index([groupId, createdAt])
+  @@map("messages")
+}
+
+model DirectMessage {
+  id        String        @id @default(cuid())
+  content   String
+  imageUrl  String?
+  metadata  Json?
+  status    MessageStatus @default(SENT)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  // ── Relations ──
+  senderId    String
+  sender      User   @relation("DirectMessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipientId String
+  recipient   User   @relation("DirectMessageRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([senderId])
+  @@index([recipientId])
+  @@index([senderId, recipientId, createdAt])
+  @@map("direct_messages")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false)
+  link      String?
+  metadata  Json?            // optional payload (e.g., { orderId, productId })
+  createdAt DateTime         @default(now())
+
+  // ── Relations ──
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  expiresAt DateTime
+  isRevoked Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  // ── Relations ──
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String     @unique
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("carts")
+}
+
+model CartItem {
+  id            String   @id @default(cuid())
+  cartId        String
+  productId     String
+  quantity      Int
+  priceSnapshot Float    // price at the time of adding
+  selected      Boolean  @default(true) // for checkout
+  isSavedForLater Boolean @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  cart    Cart       @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product ArtProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId])
+  @@index([cartId])
+  @@index([productId])
+  @@map("cart_items")
+}
