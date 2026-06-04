@@ -456,10 +456,11 @@ npx prisma generate --schema=./prisma/schema.prisma
 npx prisma db push --schema=./prisma/schema.prisma
 
 # 4. Seed test data (optional but recommended)
-npx ts-node prisma/seed.ts
+npx ts-node prisma/seed.ts          
 
 # 5. Run!
 npm run dev
+
 ```
 
 Then open **http://localhost:3000** 🎨

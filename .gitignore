@@ -23,6 +23,7 @@ out/
 .env.development.local
 .env.test.local
 .env.production.local
+.env.example
 
 # ─── IDE / Editor ────────────────────────────────
 .vscode/settings.json
