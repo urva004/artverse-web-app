@@ -2,10 +2,8 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "CommonJS",
-    "moduleResolution": "node",
     "outDir": "./dist",
     "rootDir": "../..",
-    "ignoreDeprecations": "6.0",
     "declaration": true,
     "sourceMap": true,
     "strict": true,
@@ -16,7 +14,6 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
       "@artverse/utils": ["../../packages/utils/src"],
