@@ -1,0 +1,15 @@
+{
+  "apps": [
+    {
+      "name": "artverse-app",
+      "script": "npm",
+      "args": "run dev",
+      "cwd": ".",
+      "watch": false,
+      "autorestart": true,
+      "env": {
+        "NODE_ENV": "development"
+      }
+    }
+  ]
+}
