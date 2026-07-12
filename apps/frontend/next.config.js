@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  transpilePackages: ["@artverse/ui", "@artverse/utils"],
+  transpilePackages: ["@artverse/ui", "@artverse/utils", "styled-jsx"],
   images: {
     remotePatterns: [
       {
