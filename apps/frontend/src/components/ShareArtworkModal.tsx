@@ -184,8 +184,8 @@ export function ShareArtworkModal() {
             </button>
           </div>
 
-          <div className="grid gap-0 overflow-hidden lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="space-y-5 border-b border-[var(--color-border)] p-5 sm:p-6 lg:border-b-0 lg:border-r">
+          <div className="grid gap-0 overflow-y-auto lg:overflow-hidden lg:grid-cols-[1.1fr_0.9fr] flex-1 min-h-0">
+            <div className="space-y-5 border-b border-[var(--color-border)] p-5 sm:p-6 lg:border-b-0 lg:border-r lg:overflow-y-auto scrollbar-thin">
               <div className="overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-[var(--color-card)] shadow-sm">
                 <div className="relative aspect-[4/3] w-full">
                   <SafeImage
@@ -258,7 +258,7 @@ export function ShareArtworkModal() {
                 </button>
               </div>
 
-              <div className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1 scrollbar-thin">
+              <div className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1 scrollbar-thin max-h-[240px] lg:max-h-none">
                 {activeTab === "community" ? (
                   <div className="space-y-3">
                     {groupsQuery.isLoading ? (

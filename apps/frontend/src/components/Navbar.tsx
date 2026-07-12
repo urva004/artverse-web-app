@@ -3,6 +3,7 @@
 // ═══════════════════════════════════════════════════
 
 "use client";
+import "styled-jsx/style";
 
 import { motion } from "framer-motion";
 import {
