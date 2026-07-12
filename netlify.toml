@@ -6,8 +6,5 @@
   # Ensures Next.js runtime uses the correct Node version
   NODE_VERSION = "18"
 
-[functions]
-  included_node_modules = ["styled-jsx"]
-
 [[plugins]]
   package = "@netlify/plugin-nextjs"
