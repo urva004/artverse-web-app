@@ -61,7 +61,7 @@ export function NotificationDropdown() {
   const unread = data?.unreadCount ?? 0;
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="md:relative">
       <button
         onClick={() => setOpen(!open)}
         className="relative flex h-9 w-9 items-center justify-center rounded-input text-[var(--color-muted)] transition-colors hover:bg-[var(--color-card)] hover:text-[var(--color-text)]"
@@ -75,7 +75,7 @@ export function NotificationDropdown() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-12 z-modal w-80 overflow-hidden rounded-card border border-[var(--color-border)] bg-[var(--color-card)] shadow-lg">
+        <div className="absolute left-4 right-4 md:left-auto md:right-0 top-12 z-modal md:w-80 overflow-hidden rounded-card border border-[var(--color-border)] bg-[var(--color-card)] shadow-lg">
           <div className="flex items-center justify-between border-b border-[var(--color-border)] p-3">
             <h3 className="text-sm font-semibold">Notifications</h3>
             {unread > 0 && (

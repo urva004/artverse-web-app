@@ -345,7 +345,7 @@ export function ChatInput({
             rows={1}
           />
 
-          <div ref={emojiPanelRef} className="relative mb-1">
+          <div ref={emojiPanelRef} className="mb-1">
             <button
               type="button"
               onClick={() => setIsEmojiOpen((open) => !open)}
@@ -356,7 +356,7 @@ export function ChatInput({
             </button>
 
             {isEmojiOpen && (
-              <div className="absolute bottom-12 right-0 z-50 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] shadow-2xl">
+              <div className="absolute bottom-16 left-0 right-0 mx-auto max-w-[calc(100vw-2rem)] md:left-auto md:right-12 md:mx-0 w-[352px] z-50 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] shadow-2xl">
                 <Picker
                   data={data}
                   onEmojiSelect={(emoji: any) => insertTextAtCursor(emoji.native)}

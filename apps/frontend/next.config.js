@@ -17,6 +17,10 @@ const nextConfig = {
         hostname: "api.dicebear.com",
       },
       {
+        protocol: "https",
+        hostname: "artverse-web-app.onrender.com",
+      },
+      {
         protocol: "http",
         hostname: "localhost",
         port: "4000",
