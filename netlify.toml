@@ -5,3 +5,6 @@
 [build.environment]
   # Ensures Next.js runtime uses the correct Node version
   NODE_VERSION = "18"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
