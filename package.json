@@ -20,7 +20,7 @@
     "db:seed": "ts-node prisma/seed.ts",
     "db:studio": "prisma studio --schema=./prisma/schema.prisma",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
-    "prepare": "husky install"
+    "prepare": "husky install || true"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
