@@ -47,12 +47,12 @@ export function VirtualizedChatList({
       )}
 
       <List
-        listRef={listRef}
+        listRef={listRef as any}
         className="chat-scrollbar"
         style={{ height: "100%", width: "100%" }}
         defaultHeight={600}
         rowCount={messages.length}
-        rowHeight={(index) => itemSize(messages[index], index)}
+        rowHeight={(index) => itemSize(messages[index]!, index)}
         rowComponent={Row}
         rowProps={{ messages }}
         overscanCount={4}

@@ -48,6 +48,12 @@ export function getChatRowMeta<T extends ChatTimelineMessage>(
   currentUserId?: string
 ) {
   const message = messages[index];
+  if (!message) {
+    return {
+      isMe: false,
+      showAvatar: true,
+    };
+  }
   const previousMessage = messages[index - 1];
   const isMe = message.sender.id === currentUserId;
   const isSameUserAsPrev = previousMessage?.sender.id === message.sender.id;
