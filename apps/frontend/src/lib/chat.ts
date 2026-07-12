@@ -66,12 +66,15 @@ export function estimateChatRowHeight<T extends ChatTimelineMessage>(
   showAvatar: boolean
 ) {
   const textLength = message.content?.trim().length ?? 0;
-  const baseHeight = showAvatar ? 120 : 88;
-  const textHeight = Math.max(24, Math.ceil(textLength / 34) * 20);
+  // showAvatar adds sender name + avatar spacing; otherwise tight grouping
+  const baseHeight = showAvatar ? 72 : 48;
+  // roughly 34 chars per line at 20px line height
+  const lineCount = Math.max(1, Math.ceil(textLength / 34));
+  const textHeight = lineCount * 20 + 20; // +20 for bubble padding
   const hasAttachment = !!message.imageUrl;
   const hasArtwork = Boolean((message.metadata as { artwork?: unknown } | undefined)?.artwork);
 
-  return baseHeight + textHeight + (hasAttachment ? 300 : 0) + (hasArtwork ? 340 : 0);
+  return baseHeight + textHeight + (hasAttachment ? 260 : 0) + (hasArtwork ? 300 : 0);
 }
 
 export function scrollContainerIsNearBottom(element: HTMLElement, threshold = 140) {

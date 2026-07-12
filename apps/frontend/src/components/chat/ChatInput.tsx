@@ -12,8 +12,6 @@ import { api } from "@/lib/api";
 import type { ChatSendPayload } from "./types";
 
 interface ChatInputProps {
-  message: string;
-  setMessage: (msg: string) => void;
   onSend: (payload: ChatSendPayload) => Promise<void> | void;
   onTyping?: () => void;
   disabled?: boolean;
@@ -89,8 +87,6 @@ async function uploadImage(file: File, onProgress: (progress: number) => void): 
 }
 
 export function ChatInput({
-  message,
-  setMessage,
   onSend,
   onTyping,
   disabled = false,
@@ -99,6 +95,8 @@ export function ChatInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const emojiPanelRef = useRef<HTMLDivElement>(null);
+  // message state is kept internal — parent never needs to re-render on keystrokes
+  const [message, setMessage] = useState("");
   const [isEmojiOpen, setIsEmojiOpen] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [attachment, setAttachment] = useState<File | null>(null);

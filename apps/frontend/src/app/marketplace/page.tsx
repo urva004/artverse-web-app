@@ -9,7 +9,6 @@ import { motion } from "framer-motion";
 import { PackageOpen } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useState, useCallback, Suspense } from "react";
-import toast from "react-hot-toast";
 
 import { FilterSidebar } from "@/components/FilterSidebar";
 import { ProductCard } from "@/components/ProductCard";
@@ -76,20 +75,7 @@ function MarketplaceContent() {
 
   const handleFilterChange = useCallback(
     (newFilters: Record<string, string | number | undefined>) => {
-      setFilters((prev) => {
-        const nextFilters = { ...prev, ...newFilters, page: 1 };
-
-        if (
-          nextFilters.minPrice !== undefined &&
-          nextFilters.maxPrice !== undefined &&
-          Number(nextFilters.minPrice) > Number(nextFilters.maxPrice)
-        ) {
-          toast.error("Minimum price must be less than or equal to maximum price");
-          return prev;
-        }
-
-        return nextFilters;
-      });
+      setFilters((prev) => ({ ...prev, ...newFilters, page: 1 }));
     },
     [],
   );

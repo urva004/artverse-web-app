@@ -16,6 +16,7 @@ import toast from "react-hot-toast";
 import { loginSchema, type LoginInput } from "@artverse/utils";
 
 import { useAuthStore } from "@/store/authStore";
+import { toastApiError } from "@/lib/api";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -37,10 +38,7 @@ export default function LoginPage() {
       const currentUser = useAuthStore.getState().user;
       router.push(currentUser?.role === "ADMIN" ? "/dashboard" : "/onboarding");
     } catch (error: unknown) {
-      const message =
-        (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message || "Login failed. Please try again.";
-      toast.error(message);
+      toastApiError(error, "Login failed. Please try again.");
     }
   };
 

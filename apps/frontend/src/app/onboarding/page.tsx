@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, ShoppingBag, Brush } from "lucide-react";
 import toast from "react-hot-toast";
 
-import { api } from "@/lib/api";
+import { api, toastApiError } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { UserRole } from "@artverse/utils";
 
@@ -69,10 +69,7 @@ export default function OnboardingPage() {
         selectedRole === UserRole.SELLER ? "/dashboard" : "/marketplace",
       );
     } catch (error: unknown) {
-      const message =
-        (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message || "Unable to save onboarding choice";
-      toast.error(message);
+      toastApiError(error, "Unable to save onboarding choice");
     } finally {
       setIsSaving(false);
     }

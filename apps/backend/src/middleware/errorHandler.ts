@@ -31,6 +31,7 @@ export function errorHandler(
     res.status(err.statusCode).json({
       success: false,
       message: err.message,
+      errors: [],
     });
     return;
   }
@@ -56,9 +57,16 @@ export function errorHandler(
       err.code === "LIMIT_FILE_SIZE"
         ? "File too large. Maximum size is 5MB."
         : `Upload error: ${err.message}`;
+    const field = err.field || "images";
     res.status(statusCode).json({
       success: false,
       message,
+      errors: [
+        {
+          field,
+          message,
+        },
+      ],
     });
     return;
   }
@@ -68,6 +76,7 @@ export function errorHandler(
     res.status(401).json({
       success: false,
       message: "Invalid token.",
+      errors: [],
     });
     return;
   }
@@ -76,6 +85,7 @@ export function errorHandler(
     res.status(401).json({
       success: false,
       message: "Token expired.",
+      errors: [],
     });
     return;
   }
@@ -89,6 +99,7 @@ export function errorHandler(
     res.status(500).json({
       success: false,
       message: "A database error occurred. Please try again in a moment.",
+      errors: [],
       error: process.env.NODE_ENV === "production" ? undefined : err.message,
     });
     return;
@@ -102,6 +113,7 @@ export function errorHandler(
       process.env.NODE_ENV === "production"
         ? "Internal server error"
         : err.message,
+    errors: [],
   });
 }
 

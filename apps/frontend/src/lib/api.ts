@@ -4,6 +4,7 @@
 
 import axios from "axios";
 import type { AxiosError, InternalAxiosRequestConfig } from "axios";
+import toast from "react-hot-toast";
 
 import type { ApiError } from "@artverse/utils";
 
@@ -108,6 +109,39 @@ function clearAuth(): void {
 
   // Reset the flag after a short delay
   setTimeout(() => { isClearing = false; }, 1000);
+}
+
+/**
+ * Cleanly formats and toasts API errors, including Zod validation errors.
+ */
+export function toastApiError(error: any, fallbackMessage: string = "An error occurred") {
+  const data = error?.response?.data;
+
+  if (data) {
+    // 1. If there are field-specific errors (e.g. from Zod validateBody)
+    if (Array.isArray(data.errors) && data.errors.length > 0) {
+      data.errors.forEach((err: { field: string; message: string }) => {
+        const fieldName = err.field.charAt(0).toUpperCase() + err.field.slice(1);
+        toast.error(`${fieldName}: ${err.message}`);
+      });
+      return;
+    }
+
+    // 2. If there is a general error message from the backend
+    if (data.message) {
+      toast.error(data.message);
+      return;
+    }
+  }
+
+  // 3. Standard network/JS error message
+  if (error?.message) {
+    toast.error(error.message);
+    return;
+  }
+
+  // 4. Fallback message
+  toast.error(fallbackMessage);
 }
 
 export default api;

@@ -12,6 +12,7 @@ import { SessionInitializer } from "@/components/SessionInitializer";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { SocketProvider } from "@/providers/SocketProvider";
+import { Toaster } from "react-hot-toast";
 
 import "./globals.css";
 
@@ -53,6 +54,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               <CartInitializer />
               <Navbar />
               <ShareArtworkModal />
+              <Toaster position="top-right" reverseOrder={false} />
               <main className="min-h-[calc(100vh-4rem)] pb-20 md:pb-0">
                 {children}
               </main>

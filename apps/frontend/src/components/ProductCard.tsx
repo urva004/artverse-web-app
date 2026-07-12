@@ -138,10 +138,6 @@ export function ProductCard({
             {CATEGORY_LABELS[category] || category}
           </span>
 
-          {/* Wishlist Button */}
-          <div className="absolute right-3 top-3">
-            <WishlistButton productId={id} size="sm" />
-          </div>
 
           {/* Quick Add to Cart */}
           <motion.button
@@ -199,6 +195,11 @@ export function ProductCard({
         </div>
 
         <div className="mt-3 flex items-center gap-2 border-t border-[var(--color-border)] px-4 pb-4 pt-3">
+          <WishlistButton
+            productId={id}
+            size="sm"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-pill bg-[var(--color-bg)] text-[var(--color-muted)] transition hover:text-[var(--color-rose)]"
+          />
           <Link
             href={`/marketplace/${id}#reviews`}
             onClick={(e) => e.stopPropagation()}

@@ -48,7 +48,7 @@ export default function GroupDetailPage() {
     stopTyping,
     onTyping,
   } = useSocket();
-  const [message, setMessage] = useState("");
+
   const [messages, setMessages] = useState<ChatTimelineMessage[]>([]);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const [isSending, setIsSending] = useState(false);
@@ -418,11 +418,11 @@ export default function GroupDetailPage() {
                         const meta = getChatRowMeta(messages, index, user?.id);
                         return estimateChatRowHeight(item, meta.showAvatar);
                       }}
-                      renderItem={(item, index, style) => {
+                      renderItem={(item, index) => {
                         const meta = getChatRowMeta(messages, index, user?.id);
 
                         return (
-                          <div style={style} className="px-4 py-2 md:px-6">
+                          <div className="px-4 md:px-6">
                             <ChatMessage message={item as any} isMe={meta.isMe} showAvatar={meta.showAvatar} />
                           </div>
                         );
@@ -462,8 +462,6 @@ export default function GroupDetailPage() {
               )}
 
               <ChatInput
-                message={message}
-                setMessage={setMessage}
                 onSend={handleSend}
                 onTyping={handleTyping}
                 disabled={!group.isMember || isSending}

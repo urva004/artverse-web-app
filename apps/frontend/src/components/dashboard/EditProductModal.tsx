@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { X, Upload, Loader2, ImageIcon, DollarSign, Package, Tag, FileText, Sparkles } from "lucide-react";
 import toast from "react-hot-toast";
-import { api } from "@/lib/api";
+import { api, toastApiError } from "@/lib/api";
 import { ArtCategory, CATEGORY_LABELS } from "@artverse/utils";
 import { SafeImage } from "@/components/SafeImage";
 
@@ -129,7 +129,7 @@ export function EditProductModal({ product, onClose }: EditProductModalProps) {
     },
     onError: (err: any) => {
       console.error("[EditProductModal] Update error:", err);
-      toast.error(err.response?.data?.message || "Failed to update product");
+      toastApiError(err, "Failed to update product");
     },
   });
 

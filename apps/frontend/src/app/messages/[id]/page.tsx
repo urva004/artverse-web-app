@@ -43,7 +43,7 @@ export default function DirectMessagePage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuthStore();
   const { onDirectMessage } = useSocket();
-  const [message, setMessage] = useState("");
+
   const [messages, setMessages] = useState<ChatTimelineMessage[]>([]);
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -365,11 +365,11 @@ export default function DirectMessagePage() {
                 const meta = getChatRowMeta(messages, index, user?.id);
                 return estimateChatRowHeight(item, meta.showAvatar);
               }}
-              renderItem={(item, index, style) => {
+              renderItem={(item, index) => {
                 const meta = getChatRowMeta(messages, index, user?.id);
 
                 return (
-                  <div style={style} className="px-4 py-2 sm:px-6">
+                  <div className="px-4 sm:px-6">
                     <ChatMessage message={item as any} isMe={meta.isMe} showAvatar={meta.showAvatar} />
                   </div>
                 );
@@ -396,8 +396,6 @@ export default function DirectMessagePage() {
         </div>
 
         <ChatInput
-          message={message}
-          setMessage={setMessage}
           onSend={handleSend}
           onTyping={() => undefined}
           placeholder={`Message ${recipient?.name || "user"}`}

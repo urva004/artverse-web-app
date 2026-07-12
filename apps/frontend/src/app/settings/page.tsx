@@ -11,7 +11,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { changePasswordSchema, type ChangePasswordInput, UserRole } from "@artverse/utils";
 
-import { api } from "@/lib/api";
+import { api, toastApiError } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { UserAvatar } from "@/components/UserAvatar";
 
@@ -123,11 +123,7 @@ export default function SettingsPage() {
       router.replace(`/artist/${updatedUser.id}`);
     } catch (err: any) {
       console.error("Profile update error:", err?.response?.data || err);
-      const message =
-        err?.response?.data?.message ||
-        err?.response?.data?.errors?.[0]?.message ||
-        "Failed to update profile";
-      toast.error(message);
+      toastApiError(err, "Failed to update profile");
     }
     setIsLoading(false);
   };
@@ -148,8 +144,7 @@ export default function SettingsPage() {
 
       toast.success("Seller access enabled. You can upload artwork now.");
     } catch (err: any) {
-      const message = err?.response?.data?.message || "Failed to enable seller access";
-      toast.error(message);
+      toastApiError(err, "Failed to enable seller access");
     } finally {
       setIsSellerLoading(false);
     }
@@ -164,9 +159,7 @@ export default function SettingsPage() {
       toast.success("Password updated. Please sign in again.");
       router.push("/auth/login");
     } catch (err: any) {
-      const message =
-        err?.response?.data?.message || "Failed to update password";
-      toast.error(message);
+      toastApiError(err, "Failed to update password");
     } finally {
       setIsPasswordLoading(false);
     }

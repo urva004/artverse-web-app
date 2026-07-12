@@ -28,9 +28,12 @@ export function VirtualizedChatList({
       return null;
     }
 
+    // Pass an empty style object to renderItem — the List already positions the
+    // row via the outer `style`.  Passing `style` again would double-apply the
+    // absolute positioning and height, causing the "blank space" gaps.
     return (
       <div style={style} {...ariaAttributes}>
-        {renderItem(message, index, style)}
+        {renderItem(message, index, {})}
       </div>
     );
   };

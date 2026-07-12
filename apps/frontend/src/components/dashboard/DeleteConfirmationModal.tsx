@@ -3,7 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Loader2, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
-import { api } from "@/lib/api";
+import { api, toastApiError } from "@/lib/api";
 
 interface DeleteConfirmationModalProps {
   productId: string;
@@ -28,7 +28,7 @@ export function DeleteConfirmationModal({ productId, productName, onClose }: Del
       onClose();
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || "Failed to delete item.");
+      toastApiError(err, "Failed to delete item.");
     },
   });
 

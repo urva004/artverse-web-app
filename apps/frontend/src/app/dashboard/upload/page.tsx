@@ -19,7 +19,7 @@ import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArtCategory, CATEGORY_LABELS } from "@artverse/utils";
-import { api } from "@/lib/api";
+import { api, toastApiError } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 
 interface ArtworkForm {
@@ -166,9 +166,7 @@ export default function UploadArtworkPage() {
       toast.success("Artwork uploaded successfully! 🎨");
       router.push(`/artists/${user?.id}`);
     } catch (err: any) {
-      const msg =
-        err?.response?.data?.message || "Failed to upload artwork";
-      toast.error(msg);
+      toastApiError(err, "Failed to upload artwork");
     }
     setIsSubmitting(false);
   };

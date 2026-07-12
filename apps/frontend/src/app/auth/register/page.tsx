@@ -16,6 +16,7 @@ import toast from "react-hot-toast";
 import { registerSchema, type RegisterInput } from "@artverse/utils";
 
 import { useAuthStore } from "@/store/authStore";
+import { toastApiError } from "@/lib/api";
 
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -37,26 +38,7 @@ export default function RegisterPage() {
       const currentUser = useAuthStore.getState().user;
       router.push(currentUser?.role === "ADMIN" ? "/dashboard" : "/onboarding");
     } catch (error: unknown) {
-      const axiosError = error as {
-        response?: {
-          data?: {
-            message?: string;
-            errors?: Array<{ field: string; message: string }>;
-          };
-        };
-      };
-
-      const fieldErrors = axiosError?.response?.data?.errors;
-      if (fieldErrors && fieldErrors.length > 0) {
-        fieldErrors.forEach((err) =>
-          toast.error(`${err.field}: ${err.message}`),
-        );
-      } else {
-        const message =
-          axiosError?.response?.data?.message ||
-          "Registration failed. Please try again.";
-        toast.error(message);
-      }
+      toastApiError(error, "Registration failed. Please try again.");
     }
   };
 
