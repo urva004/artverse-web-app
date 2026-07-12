@@ -1,0 +1,7 @@
+[build]
+  command = "npx turbo run build --filter=@artverse/frontend"
+  publish = "apps/frontend/.next"
+
+[build.environment]
+  # Ensures Next.js runtime uses the correct Node version
+  NODE_VERSION = "18"
