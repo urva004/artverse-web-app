@@ -17,5 +17,8 @@ router.post("/:id/join", authenticate, groupController.joinGroup);
 router.post("/:id/leave", authenticate, groupController.leaveGroup);
 router.get("/:id/messages", authenticate, groupController.getMessages);
 router.post("/:id/messages", authenticate, validateBody(sendMessageSchema), groupController.sendMessage);
+router.patch("/messages/:messageId", authenticate, groupController.editMessage);
+router.delete("/messages/:messageId", authenticate, groupController.deleteMessage);
+router.post("/messages/:messageId/react", authenticate, groupController.reactToMessage);
 
 export default router;

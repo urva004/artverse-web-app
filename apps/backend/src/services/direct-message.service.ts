@@ -11,6 +11,7 @@ interface SendDirectMessageInput {
   content: string;
   imageUrl?: string;
   metadata?: Prisma.InputJsonValue;
+  replyToId?: string;
 }
 
 interface ChatHistoryResult<T> {
@@ -51,13 +52,31 @@ export async function sendDirectMessage(senderId: string, recipientId: string, d
     throw new AppError("User not found", 404);
   }
 
+  let finalMetadata = data.metadata || {};
+  if (data.replyToId) {
+    const replyToMessage = await prisma.directMessage.findUnique({
+      where: { id: data.replyToId },
+      include: { sender: { select: { name: true } } },
+    });
+    if (replyToMessage) {
+      finalMetadata = {
+        ...(finalMetadata as object),
+        replyTo: {
+          id: replyToMessage.id,
+          senderName: replyToMessage.sender.name,
+          content: replyToMessage.content.slice(0, 100) + (replyToMessage.content.length > 100 ? "..." : ""),
+        },
+      };
+    }
+  }
+
   const message = await prisma.directMessage.create({
     data: {
       senderId,
       recipientId,
       content: data.content,
       ...(data.imageUrl && { imageUrl: data.imageUrl }),
-      ...(data.metadata && { metadata: data.metadata }),
+      metadata: finalMetadata as any,
     },
     include: {
       sender: {
@@ -213,4 +232,74 @@ export async function getDirectMessages(
     nextCursor: hasMore ? orderedMessages[0]?.id ?? null : null,
     hasMore,
   };
+}
+
+/** Edit a direct message */
+export async function editDirectMessage(messageId: string, userId: string, content: string) {
+  const message = await prisma.directMessage.findUnique({
+    where: { id: messageId },
+  });
+  if (!message) throw new AppError("Message not found", 404);
+  if (message.senderId !== userId) throw new AppError("You can only edit your own messages", 403);
+
+  return prisma.directMessage.update({
+    where: { id: messageId },
+    data: { content },
+    include: {
+      sender: { select: { id: true, name: true, avatar: true } },
+      recipient: { select: { id: true, name: true, avatar: true } },
+    },
+  });
+}
+
+/** Delete a direct message */
+export async function deleteDirectMessage(messageId: string, userId: string) {
+  const message = await prisma.directMessage.findUnique({
+    where: { id: messageId },
+  });
+  if (!message) throw new AppError("Message not found", 404);
+  if (message.senderId !== userId) throw new AppError("You can only delete your own messages", 403);
+
+  return prisma.directMessage.delete({
+    where: { id: messageId },
+  });
+}
+
+/** React to a direct message */
+export async function reactToDirectMessage(messageId: string, userId: string, emoji: string) {
+  const message = await prisma.directMessage.findUnique({
+    where: { id: messageId },
+  });
+  if (!message) throw new AppError("Message not found", 404);
+
+  let metadata = (message.metadata as Record<string, any> | null) || {};
+  let reactions = (metadata.reactions as Array<{ emoji: string; userIds: string[] }> | null) || [];
+
+  const existingEmojiReaction = reactions.find((r) => r.emoji === emoji);
+  if (existingEmojiReaction) {
+    if (existingEmojiReaction.userIds.includes(userId)) {
+      existingEmojiReaction.userIds = existingEmojiReaction.userIds.filter((id) => id !== userId);
+    } else {
+      existingEmojiReaction.userIds.push(userId);
+    }
+  } else {
+    reactions.push({ emoji, userIds: [userId] });
+  }
+
+  reactions = reactions.filter((r) => r.userIds.length > 0);
+
+  metadata = {
+    ...metadata,
+    reactions,
+  };
+
+  const updatedMessage = await prisma.directMessage.update({
+    where: { id: messageId },
+    data: { metadata: metadata as any },
+    include: {
+      sender: { select: { id: true, name: true, avatar: true } },
+    },
+  });
+
+  return updatedMessage;
 }

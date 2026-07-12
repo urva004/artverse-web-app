@@ -4,7 +4,8 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { ArrowDown, ArrowLeft, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import type { ListImperativeAPI } from "react-window";
 
 import { UserAvatar } from "@/components/UserAvatar";
@@ -14,11 +15,13 @@ import { VirtualizedChatList } from "@/components/chat/VirtualizedChatList";
 import type { ChatSendPayload } from "@/components/chat/types";
 import { api } from "@/lib/api";
 import {
+  buildChatTimeline,
   estimateChatRowHeight,
   getChatRowMeta,
   mergeChatMessages,
   scrollContainerIsNearBottom,
   sortChatMessages,
+  type ChatTimelineItem,
   type ChatTimelineMessage,
 } from "@/lib/chat";
 import { useSocket } from "@/hooks/useSocket";
@@ -42,15 +45,17 @@ interface DirectMessageThreadResponse {
 export default function DirectMessagePage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuthStore();
-  const { onDirectMessage } = useSocket();
+  const { onDirectMessage, onUpdateDirectMessage, onDeleteDirectMessage } = useSocket();
 
   const [messages, setMessages] = useState<ChatTimelineMessage[]>([]);
+  const timelineItems = useMemo<ChatTimelineItem[]>(() => buildChatTimeline(messages), [messages]);
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isInitialLoaded, setIsInitialLoaded] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [replyingTo, setReplyingTo] = useState<ChatTimelineMessage | null>(null);
   const scrollContainerRef = useRef<ListImperativeAPI | null>(null);
   const pendingRestoreRef = useRef<{ scrollHeight: number; scrollTop: number } | null>(null);
   const pendingAutoScrollRef = useRef<ScrollBehavior | null>(null);
@@ -125,12 +130,14 @@ export default function DirectMessagePage() {
   }, [initialMessagesQuery.data]);
 
   const scrollToLatest = useCallback((behavior: ScrollBehavior = "smooth") => {
-    const container = scrollContainerRef.current?.element;
-    if (!container) {
-      return;
-    }
+    window.requestAnimationFrame(() => {
+      const container = scrollContainerRef.current?.element;
+      if (!container) {
+        return;
+      }
 
-    container.scrollTo({ top: container.scrollHeight, behavior });
+      container.scrollTo({ top: container.scrollHeight, behavior });
+    });
   }, []);
 
   useLayoutEffect(() => {
@@ -249,9 +256,45 @@ export default function DirectMessagePage() {
     return unsubscribe;
   }, [appendIncomingMessage, id, onDirectMessage, user?.id]);
 
+  useEffect(() => {
+    const unsubUpdate = onUpdateDirectMessage((updatedMsg: ChatTimelineMessage) => {
+      if (!updatedMsg || (updatedMsg.sender?.id !== id && updatedMsg.recipient?.id !== id)) {
+        return;
+      }
+      setMessages((prev) =>
+        prev.map((msg) => (msg.id === updatedMsg.id ? updatedMsg : msg))
+      );
+    });
+
+    const unsubDelete = onDeleteDirectMessage((data: { id: string }) => {
+      setMessages((prev) => prev.filter((msg) => msg.id !== data.id));
+    });
+
+    return () => {
+      unsubUpdate();
+      unsubDelete();
+    };
+  }, [id, onUpdateDirectMessage, onDeleteDirectMessage]);
+
+  const handleEditMessage = useCallback(async (messageId: string, content: string) => {
+    const response = await api.patch(`/users/messages/${messageId}`, { content });
+    const updated = response.data.data;
+    setMessages((prev) => prev.map((msg) => msg.id === messageId ? updated : msg));
+  }, []);
+
+  const handleDeleteMessage = useCallback(async (messageId: string) => {
+    await api.delete(`/users/messages/${messageId}`);
+    setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+  }, []);
+
   const sendMutation = useMutation({
-    mutationFn: async (payload: ChatSendPayload) => {
-      const response = await api.post(`/users/${id}/messages`, payload);
+    mutationFn: async (payload: ChatSendPayload & { replyToId?: string }) => {
+      const response = await api.post(`/users/${id}/messages`, {
+        content: payload.content,
+        imageUrl: payload.imageUrl,
+        metadata: payload.metadata,
+        replyToId: payload.replyToId,
+      });
       return response.data.data as ChatTimelineMessage;
     },
   });
@@ -267,11 +310,22 @@ export default function DirectMessagePage() {
     }
 
     const tempId = `temp-${Date.now()}`;
+    const optimisticMetadata = {
+      ...(payload.metadata || {}),
+      ...(replyingTo ? {
+        replyTo: {
+          id: replyingTo.id,
+          senderName: replyingTo.sender.name,
+          content: replyingTo.content.slice(0, 100) + (replyingTo.content.length > 100 ? "..." : ""),
+        },
+      } : {}),
+    };
+
     const optimisticMessage: ChatTimelineMessage = {
       id: tempId,
       content,
       imageUrl: payload.imageUrl,
-      metadata: (payload.metadata ?? null) as Record<string, unknown> | null,
+      metadata: optimisticMetadata as any,
       createdAt: new Date().toISOString(),
       sender: {
         id: user?.id ?? "me",
@@ -280,13 +334,16 @@ export default function DirectMessagePage() {
       },
     };
 
+    const replyToId = replyingTo?.id;
+    setReplyingTo(null);
+
     isAtBottomRef.current = true;
     setIsAtBottom(true);
     setMessages((current) => mergeChatMessages(current, [optimisticMessage]));
     pendingAutoScrollRef.current = "smooth";
 
     try {
-      const finalMessage = await sendMutation.mutateAsync(payload);
+      const finalMessage = await sendMutation.mutateAsync({ ...payload, replyToId });
       setMessages((current) => {
         const withoutTemp = current.filter((item) => item.id !== tempId);
         return mergeChatMessages(withoutTemp, [finalMessage]);
@@ -297,6 +354,29 @@ export default function DirectMessagePage() {
       throw error;
     }
   };
+
+  const handleReact = useCallback(async (messageId: string, emoji: string) => {
+    try {
+      const response = await api.post(`/users/messages/${messageId}/react`, { emoji });
+      const updated = response.data.data;
+      setMessages((prev) => prev.map((msg) => msg.id === messageId ? updated : msg));
+    } catch {
+      toast.error("Failed to react to message");
+    }
+  }, []);
+
+  const handleReplyClick = useCallback((replyToId: string) => {
+    const index = timelineItems.findIndex((item) => item.kind === "message" && item.id === replyToId);
+    if (index !== -1) {
+      (scrollContainerRef.current as any)?.scrollToRow({
+        index,
+        align: "center",
+        behavior: "smooth",
+      });
+    } else {
+      toast.error("Message not found in loaded history");
+    }
+  }, [timelineItems]);
 
   if (initialMessagesQuery.isLoading && !isInitialLoaded) {
     return (
@@ -357,20 +437,40 @@ export default function DirectMessagePage() {
             </div>
           ) : (
             <VirtualizedChatList
-              messages={messages}
+              items={timelineItems}
               listRef={scrollContainerRef}
               loadingOlder={isLoadingOlder}
               onScroll={handleScroll}
               itemSize={(item, index) => {
-                const meta = getChatRowMeta(messages, index, user?.id);
-                return estimateChatRowHeight(item, meta.showAvatar);
+                if (item.kind === "date-separator") return 36;
+                const meta = getChatRowMeta(timelineItems, index, user?.id);
+                return estimateChatRowHeight(item, meta);
               }}
               renderItem={(item, index) => {
-                const meta = getChatRowMeta(messages, index, user?.id);
-
+                if (item.kind === "date-separator") {
+                  return (
+                    <div key={item.id} className="flex items-center gap-3 px-4 py-2 sm:px-6" role="separator">
+                      <div className="flex-1 h-px bg-[var(--color-border)]" />
+                      <span className="shrink-0 rounded-full border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-0.5 text-[10px] font-semibold text-[var(--color-muted)] select-none">{item.label}</span>
+                      <div className="flex-1 h-px bg-[var(--color-border)]" />
+                    </div>
+                  );
+                }
+                const meta = getChatRowMeta(timelineItems, index, user?.id);
                 return (
-                  <div className="px-4 sm:px-6">
-                    <ChatMessage message={item as any} isMe={meta.isMe} showAvatar={meta.showAvatar} />
+                  <div key={item.id} className="px-4 sm:px-6">
+                    <ChatMessage
+                      message={item as any}
+                      isMe={meta.isMe}
+                      showAvatar={meta.showAvatar}
+                      showUsername={meta.showUsername}
+                      currentUserId={user?.id}
+                      onEdit={handleEditMessage}
+                      onDelete={handleDeleteMessage}
+                      onReply={(msg) => setReplyingTo(msg)}
+                      onReplyClick={handleReplyClick}
+                      onReact={handleReact}
+                    />
                   </div>
                 );
               }}
@@ -400,6 +500,8 @@ export default function DirectMessagePage() {
           onTyping={() => undefined}
           placeholder={`Message ${recipient?.name || "user"}`}
           disabled={sendMutation.isPending}
+          replyingTo={replyingTo}
+          onCancelReply={() => setReplyingTo(null)}
         />
       </div>
     </div>

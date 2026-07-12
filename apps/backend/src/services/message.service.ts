@@ -11,6 +11,7 @@ interface SendGroupMessageInput {
   content: string;
   imageUrl?: string;
   metadata?: Prisma.InputJsonValue;
+  replyToId?: string;
 }
 
 interface ChatHistoryResult<T> {
@@ -36,13 +37,31 @@ export async function sendMessage(groupId: string, senderId: string, data: SendG
   });
   if (!member) throw new AppError("You must be a member to send messages", 403);
 
+  let finalMetadata = data.metadata || {};
+  if (data.replyToId) {
+    const replyToMessage = await prisma.message.findUnique({
+      where: { id: data.replyToId },
+      include: { sender: { select: { name: true } } },
+    });
+    if (replyToMessage) {
+      finalMetadata = {
+        ...(finalMetadata as object),
+        replyTo: {
+          id: replyToMessage.id,
+          senderName: replyToMessage.sender.name,
+          content: replyToMessage.content.slice(0, 100) + (replyToMessage.content.length > 100 ? "..." : ""),
+        },
+      };
+    }
+  }
+
   const message = await prisma.message.create({
     data: {
       groupId,
       senderId,
       content: data.content,
       ...(data.imageUrl && { imageUrl: data.imageUrl }),
-      ...(data.metadata && { metadata: data.metadata }),
+      metadata: finalMetadata as any,
     },
     include: { sender: { select: { id: true, name: true, avatar: true } } },
   });
@@ -125,4 +144,74 @@ export async function getMessages(groupId: string, userId: string, before?: stri
     nextCursor: hasMore ? orderedMessages[0]?.id ?? null : null,
     hasMore,
   };
+}
+
+/** Edit a message in a group */
+export async function editMessage(messageId: string, userId: string, content: string) {
+  const message = await prisma.message.findUnique({
+    where: { id: messageId },
+  });
+  if (!message) throw new AppError("Message not found", 404);
+  if (message.senderId !== userId) throw new AppError("You can only edit your own messages", 403);
+
+  return prisma.message.update({
+    where: { id: messageId },
+    data: { content },
+    include: { sender: { select: { id: true, name: true, avatar: true } } },
+  });
+}
+
+/** Delete a message in a group */
+export async function deleteMessage(messageId: string, userId: string) {
+  const message = await prisma.message.findUnique({
+    where: { id: messageId },
+  });
+  if (!message) throw new AppError("Message not found", 404);
+  if (message.senderId !== userId) throw new AppError("You can only delete your own messages", 403);
+
+  return prisma.message.delete({
+    where: { id: messageId },
+  });
+}
+
+/** React to a message in a group */
+export async function reactToMessage(messageId: string, userId: string, emoji: string) {
+  const message = await prisma.message.findUnique({
+    where: { id: messageId },
+  });
+  if (!message) throw new AppError("Message not found", 404);
+
+  let metadata = (message.metadata as Record<string, any> | null) || {};
+  let reactions = (metadata.reactions as Array<{ emoji: string; userIds: string[] }> | null) || [];
+
+  const existingEmojiReaction = reactions.find((r) => r.emoji === emoji);
+  if (existingEmojiReaction) {
+    if (existingEmojiReaction.userIds.includes(userId)) {
+      // Toggle off: remove reaction
+      existingEmojiReaction.userIds = existingEmojiReaction.userIds.filter((id) => id !== userId);
+    } else {
+      // Toggle on: add user reaction
+      existingEmojiReaction.userIds.push(userId);
+    }
+  } else {
+    // Add new emoji reaction
+    reactions.push({ emoji, userIds: [userId] });
+  }
+
+  // Filter out any reaction configurations that have 0 userIds
+  reactions = reactions.filter((r) => r.userIds.length > 0);
+
+  // Update metadata
+  metadata = {
+    ...metadata,
+    reactions,
+  };
+
+  const updatedMessage = await prisma.message.update({
+    where: { id: messageId },
+    data: { metadata: metadata as any },
+    include: { sender: { select: { id: true, name: true, avatar: true } } },
+  });
+
+  return updatedMessage;
 }

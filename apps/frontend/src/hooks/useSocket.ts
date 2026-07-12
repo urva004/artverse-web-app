@@ -36,7 +36,7 @@ export function useSocket() {
     socketRef.current?.emit("leave:group", groupId);
   }, []);
 
-  const sendMessage = useCallback((groupId: string, content: string, options?: { imageUrl?: string; metadata?: any }): Promise<any> => {
+  const sendMessage = useCallback((groupId: string, content: string, options?: { imageUrl?: string; metadata?: any; replyToId?: string }): Promise<any> => {
     return new Promise((resolve) => {
       socketRef.current?.emit("message:send", { groupId, content, ...options }, (response: any) => resolve(response));
     });
@@ -55,9 +55,29 @@ export function useSocket() {
     return () => { socketRef.current?.off("message:new", callback); };
   }, []);
 
+  const onUpdateMessage = useCallback((callback: (message: any) => void) => {
+    socketRef.current?.on("message:update", callback);
+    return () => { socketRef.current?.off("message:update", callback); };
+  }, []);
+
+  const onDeleteMessage = useCallback((callback: (data: { id: string }) => void) => {
+    socketRef.current?.on("message:delete", callback);
+    return () => { socketRef.current?.off("message:delete", callback); };
+  }, []);
+
   const onDirectMessage = useCallback((callback: (message: any) => void) => {
     socketRef.current?.on("direct:message:new", callback);
     return () => { socketRef.current?.off("direct:message:new", callback); };
+  }, []);
+
+  const onUpdateDirectMessage = useCallback((callback: (message: any) => void) => {
+    socketRef.current?.on("direct:message:update", callback);
+    return () => { socketRef.current?.off("direct:message:update", callback); };
+  }, []);
+
+  const onDeleteDirectMessage = useCallback((callback: (data: { id: string }) => void) => {
+    socketRef.current?.on("direct:message:delete", callback);
+    return () => { socketRef.current?.off("direct:message:delete", callback); };
   }, []);
 
   const onTyping = useCallback((callback: (data: { userId: string; groupId: string; typing: boolean }) => void) => {
@@ -65,5 +85,19 @@ export function useSocket() {
     return () => { socketRef.current?.off("typing:user", callback); };
   }, []);
 
-  return { socket: socketRef.current, joinGroup, leaveGroup, sendMessage, startTyping, stopTyping, onNewMessage, onDirectMessage, onTyping };
+  return {
+    socket: socketRef.current,
+    joinGroup,
+    leaveGroup,
+    sendMessage,
+    startTyping,
+    stopTyping,
+    onNewMessage,
+    onUpdateMessage,
+    onDeleteMessage,
+    onDirectMessage,
+    onUpdateDirectMessage,
+    onDeleteDirectMessage,
+    onTyping,
+  };
 }

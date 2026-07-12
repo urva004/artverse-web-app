@@ -53,12 +53,13 @@ export function initSocket(httpServer: HTTPServer) {
     // ── Send message ──
     socket.on(
       "message:send",
-      async (data: { groupId: string; content: string; imageUrl?: string; metadata?: any }, callback) => {
+      async (data: { groupId: string; content: string; imageUrl?: string; metadata?: any; replyToId?: string }, callback) => {
         try {
           const message = await messageService.sendMessage(data.groupId, userId, {
             content: data.content,
             imageUrl: data.imageUrl,
             metadata: data.metadata,
+            replyToId: data.replyToId,
           });
           io.to(`group:${data.groupId}`).emit("message:new", message);
           if (callback) callback({ success: true, data: message });

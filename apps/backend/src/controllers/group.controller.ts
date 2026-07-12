@@ -4,7 +4,8 @@
 
 import type { Request, Response } from "express";
 import { getIO } from "../config/socket";
-import { asyncHandler } from "../middleware/errorHandler";
+import { prisma } from "../config/database";
+import { asyncHandler, AppError } from "../middleware/errorHandler";
 import * as groupService from "../services/group.service";
 import * as messageService from "../services/message.service";
 
@@ -61,4 +62,52 @@ export const sendMessage = asyncHandler(async (req: Request, res: Response) => {
   }
 
   res.status(201).json({ success: true, data: message, message: "Message sent" });
+});
+
+export const editMessage = asyncHandler(async (req: Request, res: Response) => {
+  const message = await messageService.editMessage(req.params.messageId, req.user!.userId, req.body.content);
+
+  try {
+    const io = getIO();
+    io.to(`group:${message.groupId}`).emit("message:update", message);
+  } catch {
+    // Socket is optional
+  }
+
+  res.json({ success: true, data: message, message: "Message updated" });
+});
+
+export const deleteMessage = asyncHandler(async (req: Request, res: Response) => {
+  const message = await prisma.message.findUnique({
+    where: { id: req.params.messageId },
+  });
+  if (!message) throw new AppError("Message not found", 404);
+  const groupId = message.groupId;
+
+  await messageService.deleteMessage(req.params.messageId, req.user!.userId);
+
+  try {
+    const io = getIO();
+    io.to(`group:${groupId}`).emit("message:delete", { id: req.params.messageId });
+  } catch {
+    // Socket is optional
+  }
+
+  res.json({ success: true, message: "Message deleted" });
+});
+
+export const reactToMessage = asyncHandler(async (req: Request, res: Response) => {
+  const { emoji } = req.body;
+  if (!emoji) throw new AppError("Emoji is required", 400);
+
+  const message = await messageService.reactToMessage(req.params.messageId, req.user!.userId, emoji);
+
+  try {
+    const io = getIO();
+    io.to(`group:${message.groupId}`).emit("message:update", message);
+  } catch {
+    // Socket is optional
+  }
+
+  res.json({ success: true, data: message, message: "Reaction updated" });
 });

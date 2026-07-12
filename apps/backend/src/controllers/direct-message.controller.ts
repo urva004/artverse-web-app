@@ -4,7 +4,8 @@
 
 import type { Request, Response } from "express";
 import { getIO } from "../config/socket";
-import { asyncHandler } from "../middleware/errorHandler";
+import { prisma } from "../config/database";
+import { asyncHandler, AppError } from "../middleware/errorHandler";
 import * as directMessageService from "../services/direct-message.service";
 
 export const sendDirectMessage = asyncHandler(async (req: Request, res: Response) => {
@@ -33,4 +34,52 @@ export const getDirectMessages = asyncHandler(async (req: Request, res: Response
     next_cursor: result.nextCursor,
     has_more: result.hasMore,
   });
+});
+
+export const editDirectMessage = asyncHandler(async (req: Request, res: Response) => {
+  const message = await directMessageService.editDirectMessage(req.params.messageId, req.user!.userId, req.body.content);
+
+  try {
+    const io = getIO();
+    io.to(`user:${message.senderId}`).to(`user:${message.recipientId}`).emit("direct:message:update", message);
+  } catch {
+    // Socket is optional
+  }
+
+  res.json({ success: true, data: message, message: "Message updated" });
+});
+
+export const deleteDirectMessage = asyncHandler(async (req: Request, res: Response) => {
+  const message = await prisma.directMessage.findUnique({
+    where: { id: req.params.messageId },
+  });
+  if (!message) throw new AppError("Message not found", 404);
+  const { senderId, recipientId } = message;
+
+  await directMessageService.deleteDirectMessage(req.params.messageId, req.user!.userId);
+
+  try {
+    const io = getIO();
+    io.to(`user:${senderId}`).to(`user:${recipientId}`).emit("direct:message:delete", { id: req.params.messageId });
+  } catch {
+    // Socket is optional
+  }
+
+  res.json({ success: true, message: "Message deleted" });
+});
+
+export const reactToDirectMessage = asyncHandler(async (req: Request, res: Response) => {
+  const { emoji } = req.body;
+  if (!emoji) throw new AppError("Emoji is required", 400);
+
+  const message = await directMessageService.reactToDirectMessage(req.params.messageId, req.user!.userId, emoji);
+
+  try {
+    const io = getIO();
+    io.to(`user:${message.senderId}`).to(`user:${message.recipientId}`).emit("direct:message:update", message);
+  } catch {
+    // Socket is optional
+  }
+
+  res.json({ success: true, data: message, message: "Reaction updated" });
 });
