@@ -21,6 +21,7 @@ import { generalLimiter } from "./middleware/rateLimiter";
 import routes from "./routes";
 
 const app = express();
+app.set("trust proxy", 1);
 const server = http.createServer(app);
 
 // ── Security Middleware ──
