@@ -1,88 +1,45 @@
 // ═══════════════════════════════════════════════════
-// ArtVerse — Redis Client
+// ArtVerse — Redis Client (Disabled / Mocked)
 // ═══════════════════════════════════════════════════
 
-import Redis from "ioredis";
-
-import { env } from "./index";
 import { logger } from "./logger";
 
-let redisAvailable = false;
+// Keep this always false to run in database-only mode
+const redisAvailable = false;
 
-export const redis = new Redis(env.REDIS_URL, {
-  maxRetriesPerRequest: 3,
-  tls: env.REDIS_URL.startsWith("rediss://") ? { rejectUnauthorized: false } : undefined,
-});
-
-redis.on("connect", () => {
-  redisAvailable = true;
-  logger.info("✅ Redis connected");
-});
-
-redis.on("error", (error) => {
-  redisAvailable = false;
-  logger.error("❌ Redis connection error: " + error.message);
-});
-
-redis.on("close", () => {
-  redisAvailable = false;
-});
+// Mocked Redis client to prevent any connection attempts
+export const redis = {
+  quit: async () => {
+    return "OK";
+  },
+  on: () => {},
+};
 
 /**
  * Check if Redis is currently available
  */
 export function isRedisAvailable(): boolean {
-  return redisAvailable;
+  return false;
 }
 
 /**
  * Get a cached value, or compute & cache it.
- * Gracefully falls back to fetcher when Redis is unavailable.
+ * (Directly calls the fetcher since Redis is disabled)
  */
 export async function getOrSetCache<T>(
   key: string,
   fetcher: () => Promise<T>,
   ttlSeconds: number = 300
 ): Promise<T> {
-  if (redisAvailable) {
-    try {
-      const cached = await redis.get(key);
-      if (cached) {
-        return JSON.parse(cached) as T;
-      }
-    } catch (error) {
-      logger.error(`Redis get error for key ${key}:`, error);
-    }
-  }
-
-  const data = await fetcher();
-
-  if (redisAvailable) {
-    try {
-      await redis.setex(key, ttlSeconds, JSON.stringify(data));
-    } catch (error) {
-      logger.error(`Redis set error for key ${key}:`, error);
-    }
-  }
-
-  return data;
+  return fetcher();
 }
 
 /**
  * Invalidate cache keys matching a pattern.
- * No-op when Redis is unavailable.
+ * (No-op since Redis is disabled)
  */
 export async function invalidateCache(pattern: string): Promise<void> {
-  if (!redisAvailable) return;
-
-  try {
-    const keys = await redis.keys(pattern);
-    if (keys.length > 0) {
-      await redis.del(...keys);
-    }
-  } catch (error) {
-    logger.error(`Redis invalidate error for pattern ${pattern}:`, error);
-  }
+  // No-op
 }
 
 export default redis;
