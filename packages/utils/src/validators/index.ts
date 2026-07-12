@@ -4,7 +4,7 @@
 
 import { z } from "zod";
 
-import { ArtCategory, UserRole } from "../types";
+import { ArtCategory, UserRole } from "../types/index";
 
 const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*[a-z])(?=.*[a-zA-Z0-9]).{1,8}$/;
 
