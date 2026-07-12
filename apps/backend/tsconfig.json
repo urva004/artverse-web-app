@@ -4,6 +4,8 @@
     "module": "CommonJS",
     "moduleResolution": "node",
     "outDir": "./dist",
+    "rootDir": "../..",
+    "ignoreDeprecations": "5.0",
     "declaration": true,
     "sourceMap": true,
     "strict": true,
